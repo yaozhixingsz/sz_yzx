@@ -1,0 +1,852 @@
+########################## ubuntu systemctl  #################################
+
+列出所有自启动服务
+systemctl list-units --type=service
+
+
+要查看某个服务的日志
+journalctl -u $SERVICE_NAME
+
+
+systemctl daemon-reload
+
+########################## ubuntu 下载离线包  #################################
+/var/cache/apt/archives 是默认的安装包缓存地址
+
+执行命令： -d 标识仅下载不安装，-f 是自动解决依赖问题
+apt -d -f -y install build-essential
+
+
+########################## ubuntu 挂载分区  #################################
+lsbk：列出所有可用块设备信息
+lsblk
+
+假设你想要挂载的分区是/dev/sdb1，你需要创建一个挂载点，例如：
+sudo mkdir /mnt/mypartition
+
+
+格式化新分区：  //或者用Gparted工具来分区
+        新分区需要格式化为合适的文件系统，例如 ext4：
+sudo mkfs.ext4 /dev/nvme0n1p1
+
+挂载分区：
+sudo mount /dev/sdb1 /mnt/mypartition
+
+如果你想让挂载在启动时自动进行，你需要编辑/etc/fstab文件。
+sudo nano /etc/fstab
+
+在文件中添加一行，例如：
+/dev/sdb1 /mnt/mypartition ext4 defaults 0 2
+
+这里ext4是文件系统类型，defaults是挂载选项，0 2是用于dump和fsck命令的
+
+请根据你的实际分区设备名称和文件系统类型替换上述命令中的/dev/sdb1和ext4
+
+保存并关闭文件，然后尝试重新挂载所有分区以检查fstab是否配置正确：
+sudo mount -a
+
+
+########################## windows  nginx启动和停止  #################################
+nginx -s quit
+start nginx
+
+########################## ubuntu24  PXE 安装系统  #################################
+ubuntu 24.04 - pxe 安装 - unable to find a live file system on the network - 要用和iso文件匹配版本的 vmlinuz 和 initrd
+
+问题：客户要求安装 ubuntu 24.04。我偷懒，直接复制原 ubuntu 22.04 的目录，然后替换其中的 iso 文件。实机操作提示出错，unable to find a live file system on the network , BusyBox initramfs。
+
+尝试：需要从新版本iso文件casper目录中提出 vmlinuz 和 initrd 文件，替换旧版本的，因为两者要匹配，否则会报错。
+
+最好是ISO文件里面 提取出 vmlinuz 和 initrd
+
+########################## ubuntu24 filezilla 解决浏阳电围 FTP写数据 提示550 Permission denied   #################################
+chmod -R 777 /home/snp     ------ 解决浏阳电围 FTP写数据 提示550 Permission denied 的问题
+
+
+########################## ubuntu24   安装putty    #################################
+sudo apt-get install putty
+
+
+########################## ubuntu24   安装 cutecom    #################################
+sudo apt-get install cutecom
+
+########################## ubuntu24  server 安装图形化   #################################
+
+sudo apt-get update #更新包
+sudo apt-get install ubuntu-desktop #安装window manager桌面环境
+
+######################################   openssh  ##########################################
+
+sudo apt install openssh-server
+
+sudo systemctl start ssh
+
+sudo systemctl enable ssh
+sudo systemctl restart ssh
+
+修改端口号：
+vim /etc/ssh/sshd_config
+Port 8022
+
+service ssh status
+
+service ssh restart
+
+可能必须要重启系统才能使 修改端口 生效
+##########################################  clickhouse  ################################
+
+# 使用官方安装源clickhouse，跳过签名验证。（因为使用 gpg 完全通过代理获取签名的问题至今没有解决。）
+echo 'deb [trusted=yes] https://packages.clickhouse.com/deb stable main' > /etc/apt/sources.list.d/clickhouse.list
+apt update
+
+# 安装最新版
+apt install -y clickhouse-{server,client}
+
+# 也可以指定安装精确的版本号
+apt list -a clickhouse-server | head
+apt install -y clickhouse-{server,client}=23.12.2.59
+
+# 启动服务并配置开机自动启动
+systemctl start clickhouse-server
+systemctl enable clickhouse-server
+systemctl status clickhouse-server
+
+# 解决远程登录问题
+1.关闭clickhouse
+sudo systemctl stop clickhouse-server
+
+2.修改配置文件
+cd /etc/clickhouse-server
+vim config.xml
+放开<listen_host>这个注释，并修改为
+   <listen_host>0.0.0.0</listen_host>
+3.重启clickhouse
+sudo systemctl start clickhouse-server
+
+###############################   mysql  #############################
+apt-get install mysql-server
+mysqld  --version
+#启动
+sudo systemctl start mysql
+#开机启动
+sudo systemctl enable mysql
+#查看服务状态
+sudo systemctl status mysql
+
+#解决远程登录问题
+1.关闭MySQL
+sudo systemctl stop mysql
+2.修改配置文件
+cd /etc/mysql/mysql.conf.d/
+vim mysqld.cnf
+修改 bind-address = 0.0.0.0
+3.重启MySQL
+sudo systemctl start mysql
+
+
+mysql -u root
+CREATE USER 'root'@'%' IDENTIFIED BY 'snp@84412580';
+ALTER USER 'root'@'%' IDENTIFIED WITH 'mysql_native_password' BY 'snp@84412580';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%';
+FLUSH PRIVILEGES;
+
+###################################  jdk  ###################### 
+
+1.转到/opt目录下，此目录用于安装供本系统所有用户使用的软件。 
+# cd /opt
+2.创建JDK的安装目录 
+# mkdir jdk1.8
+3.将JDK压缩包移动到安装目录下 
+# cd jdk1.8
+4.解压JDK压缩包
+# mv /home/gao/下载/jdk-8u152-linux-x64.tar.gz ./
+# tar -xvf jdk-8u421-linux-x64.tar
+
+
+1.打开环境变量配置文件/etc/profile,在此文件中修改的配置将对本系统所有用户有效。
+#gedit /etc/profile
+2.添加JDK配置信息
+export JAVA_HOME=/opt/jdk1.8/jdk1.8.0_421
+export JRE_HOME=${JAVA_HOME}/jre
+export CLASSPATH=.:${JAVA_HOME}/lib:${JRE_HOME}/lib
+export PATH=${JAVA_HOME}/bin:$PATH
+3.使用source命令重新读取并执行profile中的配置信息
+# source /etc/profile
+4. 测试
+java -version执行如下命令查看JDK版本，如果返回当前JDK版本信息则说明安装成功
+
+
+
+################### ubuntu24  安装ubuntu software-center 软件中心 ################
+ apt-get install snapd
+ 
+ snap install snap-store
+ 
+ snap refresh snap-store
+  
+##########################  ubuntu  vsftpd  ##########################
+apt-get install vsftpd
+
+systemctl start vsftpd.service
+systemctl stop vsftpd.serviced
+systemctl restart vsftpd.service
+systemctl status vsftpd.service
+systemctl enable vsftpd.service
+
+
+
+1.增加本地账户
+useradd snpftp
+
+2.设置账户登录密码
+passwd snpftp@84412580
+
+3.可以在一个配置文件里面增加多个监听端口
+ vim /etc/vsftpd.conf
+
+listen_port=8021
+
+write_enable=YES
+
+4.在/home/目录下面  创建snpftp
+mkdir snpftp
+
+5.chmod 777 snpftp/
+
+chmod -R 777 /home/snpftp
+
+
+500 OOPS: vsftpd: refusing to run with writable root inside chroot ()
+错误解决：
+1） 承认自己就是不小心的人，设置ftp根目录为不可写：chmod a-w  ftproot
+
+2）死扛，在配置文件vsftpd.conf中加入allow_writeable_chroot=YES
+
+############################################################
+ 
+ apt-get install net-tools
+ 
+############################################################
+
+sudo ufw disable
+
+systemctl stop ufw
+ 
+systemctl status ufw
+ 
+systemctl disable ufw
+##############################  redis  ##################
+ 
+打开终端并使用以下命令更新系统软件包：`sudo apt update`
+添加 Redis PPA 存储库：`sudo add-apt-repository ppa:redislabs/redis`
+安装 Redis：`sudo apt-get install redis`
+检查 Redis 是否安装成功：`redis-server -v`
+
+
+systemctl enable redis-server
+systemctl start redis-server
+
+
+#######################################  nginx   ################### 
+apt-get install nginx
+sudo systemctl start nginx    # 启动服务
+sudo systemctl stop nginx     # 停止服务
+sudo systemctl reload nginx   # 重新加载配置文件，不中断服务
+sudo systemctl restart nginx  # 重启服务
+
+
+sudo systemctl enable nginx   # 启用开机自启动
+sudo systemctl disable nginx  # 禁止开机自启动
+
+//卸载
+sudo apt autoremove nginx* --purge 
+
+sudo rm /etc/apt/sources.list.d/nginx.list
+sudo rm /etc/apt/preferences.d/99nginx
+sudo rm /usr/share/keyrings/nginx-archive-keyring.gpg
+
+##################################  tightvncserver  ###################
+
+apt install tightvncserver
+
+通过 vncserver 命令启动 VNC 服务器实例，第一次运行时同时会完成初始化（设置 VNC 访问密码，创建初始配置文件）。
+vncserver
+
+vNC 实现远程连接，不过灰屏的问题一直无法解决
+
+#sudo apt install tigervnc-common
+#sudo apt install tigervnc-standalone-server
+#vim ~/.vnc/xstartup
+#vncserver -localhost no -geometry 2560x1440 :1
+
+################################## ubuntu24 安装filezilla客户端  ############
+
+apt install filezilla
+
+################################## ubuntu24 安装filezilla 服务端  ############
+sudo apt update
+sudo apt install filezilla-server
+
+运行FileZilla Server的配置向导：
+sudo filezilla-server-config
+
+编辑配置文件以配置服务器设置（可选，高级用户）：
+sudo nano /etc/filezilla/filezilla.conf
+
+启动FileZilla Server服务：
+sudo systemctl start filezilla-server
+
+sudo systemctl enable filezilla-server
+
+
+
+###################### ubuntu24 安装 virtualbox  ########################
+
+sudo apt install virtualbox-7.1
+apt --fix-broken install
+
+
+###################### ubuntu24 安装 gparted  ########################
+
+sudo apt install gparted
+
+
+######################################   npm   ##########################################
+apt-get install npm
+
+######################################   pm2  ##########################################
+npm install -g pm2
+
+
+###########安装 容器 podman   以及虚拟机 cockpit-machines  ################
+apt install podman
+
+apt install  cockpit-podman cockpit-machines
+
+
+##########################   远程桌面 mstsc #############################
+
+需要安装  xrdp
+因为我选择的是mstsc，所以还要再安装一个xrdp包：
+#apt-get install xrdp
+#sudo systemctl start xrdp
+#sudo systemctl enable xrdp
+#systemctl status xrdp
+
+#sudo apt-get install xfce4
+
+
+
+######################## ubuntu24 配置远程桌面  ############
+apt install ubuntu-desktop    ####安装ubuntu 
+
+先开启以下两个按钮
+（在这一步骤，可能会遇到有一个bug：导致你在打开Desktop Sharing时，Settings未响应。这时，你先重启操作系统，然后进入Settings -> System -> Remote Login，点击unlock，输入当前用户的密码，然后回到Settings -> System -> Desktop Sharing打开Desktop Sharing选项和Remote Control选项）
+
+
+步骤1：system ---> Remote Desktop ---> Remote Login (unlock)   
+步骤2：system ---> Desktop Shareing ---> 打开 Desktop Shareing与 Remote Control (Login Details  设置用户和密码)
+
+mstsc--->  ip : 3389  (netstat -antlp 查看   port 3389 可能会变化)
+
+
+
+再去启动台  app---> 找到钥匙串Password and Keys，右键login -> change password 输入当前密码，接下来将密码输入框置空，这是为了防止当你重启系统后，远程连接的账号密码自动变化的问题
+
+
+设置完钥匙串后，回到Settings -> System -> Desktop Sharing
+在Login Detail中输入username和password来设置你希望远程连接时的账号密码认证
+
+
+
+
+系统设置里面  
+system 
+  remote desktop
+  	 放开 desktop sharing
+  	 放开 remote control
+  	 
+  	 Login Detail 
+  	 			设置登录的 username  和 passwowd
+
+
+
+有时候mstsc连接ubuntu的时候提示错误
+这个可以通过修改   Login Details  设置新的用户和密码 来搞定
+
+################################ 安装 cockpit ###########################
+
+
+apt install cockpit
+
+apt install cockpit-podman
+systemctl enable cockpit.socket
+systemctl status cockpit
+
+###########################ubuntu 修改cockpit 监听端口  ##################
+
+apt-get install cockpit
+
+vi  /usr/lib/systemd/system/cockpit.socket 
+
+
+[Unit]
+Description=Cockpit Web Service Socket
+Documentation=man:cockpit-ws(8)
+Wants=cockpit-motd.service
+
+[Socket]
+ListenStream=9000
+ExecStartPost=-/usr/share/cockpit/motd/update-motd '' localhost
+ExecStartPost=-/bin/ln -snf active.motd /run/cockpit/motd
+ExecStopPost=-/bin/ln -snf /usr/share/cockpit/motd/inactive.motd /run/cockpit/motd
+
+[Install]
+WantedBy=sockets.target
+
+再执行  重启
+
+sudo systemctl daemon-reload
+sudo systemctl restart cockpit.socket
+sudo systemctl restart cockpit.service
+
+
+
+###########  安装 容器 podman   以及虚拟机 cockpit-machines  ################
+apt install podman
+
+apt install  cockpit-podman cockpit-machines
+
+#################################   ubuntu 安装 teamviewer   ####################
+
+dpkg  -i teamviewer_15.33.7_amd64.deb
+
+apt --fix-broken install
+
+
+卸载
+apt-get purge teamviewer
+
+#################################   ubuntu 安装 wechat   ####################
+dpkg  -i wechat-beta_1.0.0.238_amd64.deb
+
+#################################   ubuntu 安装 QQ   ####################
+
+dpkg  -i linuxqq_3.2.12-27597_amd64.deb
+
+#################################   ubuntu 安装 向日葵   ####################
+
+vim  /etc/apt/sources.list.d/ubuntu.sources
+
+添加以下：
+Types: deb
+URIs: http://cz.archive.ubuntu.com/ubuntu/
+Suites: jammy
+Components: main universe
+
+保存后退出，使用命令更新以及添加libgconf-2-4依赖
+sudo apt-get update
+
+
+sudo apt install libgconf-2-4
+
+
+sudo apt --fix-broken install
+
+
+
+dpkg  -i SunloginClient_15.2.0.63064_amd64.deb
+
+
+#################################   ubuntu 安装 7zip   ####################
+sudo apt install 7zip
+
+
+################################## debian proxmox对CPU的要求 ##########################
+
+当然还要打开 CPU 的虚拟化，比如 Intel® Virtualization Technology for Directed I/O (VT-d)
+
+
+proxmox8.0安装ceph -reef
+sed -i 's|http://download.proxmox.com|https://mirrors.ustc.edu.cn/proxmox|g' /usr/share/perl5/PVE/CLI/pveceph.pm
+pveceph install --version reef --repository no-subscription
+
+
+
+###############################   ubuntu 卸载软件   ########################
+
+
+1.打开终端。
+
+2.首先，确定你要卸载的软件包名称。你可以使用dpkg --list命令列出所有已安装的软件包
+
+3.执行sudo apt-get remove [软件包名]来卸载软件包，但保留配置文件。
+  如果你想彻底卸载软件包，包括它的配置文件，可以使用sudo apt-get purge [软件包名]
+
+4.如果你想清除已卸载软件包的本地仓库信息，可以执行autoremove，
+   这将删除为该软件包安装的依赖项，但只有在没有其他软件包需要这些依赖项时才会删除它们。
+   sudo apt-get autoremove
+   
+5.最后，执行autoclean清理缓存中的无用包文件：
+   sudo apt-get autoclean
+
+###############################################################################
+
+###############################   ubuntu 创建本地软件源   ########################
+
+6. 创建本地软件源
+如果希望能够使用本地的镜像源（例如，安装时从本地获取软件而不是外部仓库），可以创建本地软件源文件：
+sudo nano /etc/apt/sources.list.d/local-openstack.list
+
+打开该文件后，添加以下内容（此处的 URL 需替换为实际的本地仓库地址）：
+deb [trusted=yes] http://your-local-repo/ubuntu focal main
+deb：声明源为二进制包。
+[trusted=yes]：不验证软件包签名。
+URL：本地仓库的地址。
+保存并关闭文件。
+
+7. 更新软件源
+最后，我们再次更新软件列表，以纳入新添加的本地软件源：
+sudo apt update
+
+
+ 
+#################### Systemback  1.8版本安装#############################
+
+This is a fork of systemback. The [original project](https://launchpad.net/systemback) is no longer maintained by the creator.
+
+Simple system backup and restore application with extra features
+
+Systemback makes it easy to create backups of the system and the users configuration files. 
+In case of problems you can easily restore the previous state of the system. 
+There are extra features like system copying, system installation and Live system creation.
+
+## Install
+
+```bash
+sudo sh -c 'echo "deb [arch=amd64] http://mirrors.bwbot.org/ stable main" > /etc/apt/sources.list.d/systemback.list'
+sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key 50B2C005A67B264F
+sudo apt-get update
+sudo apt-get install systemback
+```
+
+## Build
+
+```bash
+git clone https://github.com/BluewhaleRobot/systemback
+cd systemback/systemback
+debuild
+```
+######################################################
+
+
+
+################## ubuntu24 systemback 2.0版本安装 ################# 
+SystemBack_2_Deb+Source.tar  解压缩 
+进入install目录
+1.sudo dpkg -i *.deb
+
+2.sudo apt --fix-broken install       //修复因为依赖问题而损坏的包
+
+###############   下载各种版本SystemBack_Deb  ###########
+https://mirrors.bwbot.org/pool/main/s/systemback/
+sudo dpkg -i libsystemback* systemback*
+sudo apt-get install -f
+systemback-sustart
+
+################################## systemback 要求点 ##########################
+
+恢复镜像时遇到的问题
+
+直接进入系统查看终端中的报错说明，发现是snap文件夹下的文件复制出错导致报错，如下：
+
+解决方法是删除/snap下所有的文件。
+
+# 使用命令列出所有snap安装包。
+sudo snap list
+# 使用以下语句一次性卸载所有安装包。
+sudo apt autoremove --purge snapd
+#执行过程中可能会有进程占用的问题，需要使用以下命令删除文件。
+sudo rm /var/lib/dpkg/lock-frontend
+sudo rm /var/lib/dpkg/lock
+成功运行卸载命令后，再次列出所有snap安装包发现提示已经没有snap这个文件夹
+
+# 使用命令列出所有snap安装包。
+sudo snap list
+# 使用以下语句一次性卸载所有安装包。
+sudo apt autoremove --purge snapd
+#执行过程中可能会有进程占用的问题，需要使用以下命令删除文件。
+sudo rm /var/lib/dpkg/lock-frontend
+sudo rm /var/lib/dpkg/lock
+成功运行卸载命令后，再次列出所有snap安装包发现提示已经没有snap这个文件夹
+sudo snap list
+
+这时再次使用systemback恢复系统即可。
+
+##########################################  Dell服务器iDRAC  ###################
+
+Dell服务器iDRAC的默认IP地址、用户名和密码可能会因具体的服务器型号和iDRAC版本而有所不同。通常情况下，以下是一些常见的默认设置：默认IP地址：192.168.0.120 或 192.168.1.120默认用户名：root 或 admin默认密码：calvin 或 password
+
+
+#########################  分区情况 ######################### 
+
+parted /dev/sda print
+gdisk -l /dev/sda
+fdisk -l /dev/sda
+
+
+###########################     UEFI BIOS   ###########################
+
+*****
+EF00 : EFI system partition  ( ESP )
+EF02 : BIOS boot  partition
+
+********************************************* 
+
+1： BIOS改成 UEFI
+2：进入systemback-sustart
+3: 图形界面下 分区  sda1  -- 512M        |    sda2  --- 
+4: 新启teminate   mkfs.vfat -F 32 /dev/sda 
+5: 图形界面下   sda1   挂载点 /boot/efi    |   sda 挂载点  /   | GRUB  -- EFI 或者 /dev/sda1 
+6: 安装
+
+
+***** parted /dev/sda print
+
+partition Table :  GPT
+ number  |   fileSystem  |   Name   |   Flags
+ 1           fat32                    boot,esp
+ 2           ext4
+
+*****  gdisk  -l  /dev/sda 
+ number  |   size  |   Code   |   Name
+ 1                     EF00     
+ 2                     8300       
+
+
+*****  fdisk  -l  /dev/sda 
+ number  |   size  |   Type     
+ 1                     EFI system    
+ 2                     linux filesystem       
+
+###########################     legacy BIOS  ###########################
+1： BIOS改成 legacy BIOS
+2：进入systemback-sustart
+3: 图形界面下 分区  sda1  -- 512M        |    sda2  --- 
+4: 新启teminate   mkfs.vfat -F 32 /dev/sda 
+5: 图形界面下   sda1   挂载点 /boot    |   sda 挂载点  /   | GRUB   --- /dev/sda1 
+6: 安装
+
+
+*****  parted /dev/sda print
+
+partition Table :  GPT
+ number  |   fileSystem  |   Name   |   Flags
+ 1                                     bios_grub
+ 2           ext4
+
+*****  gdisk  -l  /dev/sda 
+ number  |   size  |   Code   |   Name
+ 1                     EF02     
+ 2                     8300       
+
+
+*****  fdisk  -l  /dev/sda 
+ number  |   size  |   Type     
+ 1                     BIOS boot    
+ 2                     linux filesystem     
+
+
+
+###################################  openEuler  安装纪要  ######################################
+
+
+################  openEuler  使用本地软件仓库  ###################
+openEuler默认为我们提供了网络源的方式，该软件仓库的路径为/etc/yum.repos.d/openEuler.repo
+仓库的配置路径：
+/etc/yum.repos.d/，文件格式为*.repo
+DNF的配置路径：
+/etc/dnf/，配置文件为dnf.conf
+DNF配置仓库 /etc/dnf/dnf.conf
+根据RPM包存放的位置不同，分为网络源和本地源
+
+################  本地源  ###################
+[root@gugujun ~]# mkdir /mnt/cdrom  # 创建被挂载的目录
+[root@gugujun ~]# mount /dev/cdrom /mnt/cdrom   # 将本地镜像挂载
+mount: /mnt/cdrom: WARNING: source write-protected, mounted read-only.
+[root@gugujun ~]# cd /etc/yum.repos.d/  # 进入yum的配置目录
+[root@gugujun yum.repos.d]# mv openEuler.repo openEuler.repo.bak    # 备份默认仓库文件
+[root@gugujun ~]# touch /etc/yum.repos.d/local.repo
+[root@gugujun ~]# vim local.repo
+  [openEuler]   # 仓库的名字
+  name=openEuler Packages   # 仓库的描述
+  baseurl=file:///mnt/cdrom/    # 软件仓库的位置，本地镜像挂载目录
+  enable=1  # 仓库是否启用，为1表示开启，为0表示关闭，则在安装软件时系统不会在这个仓库下查找软件
+  gpgcheck=0    # 是否校验软件的完整性，如果开启需要写公钥的位置
+#gpgkey=/mnt/cdrom/RPM-GPG-KEY-openEuler    # RPM公钥的路径
+:wq
+[root@gugujun ~]# dnf clean all # 清除全部缓存
+6 files removed
+[root@gugujun ~]# dnf makecache # 生成新的缓存
+
+
+
+################  网络源  ###################
+[root@gugujun yum.repos.d]# vim openEuler.repo
+  [openEuler]
+  name=openEuler Packages
+  baseurl=https://mirrors.aliyun.com/openeuler/openEuler-22.03-LTS-SP3/OS/x86_64/   # 镜像仓库网址
+  enabled=1
+  gpgcheck=1
+  gpgkey=https://mirrors.aliyun.com/openeuler/openEuler-22.03-LTS-SP3/OS/x86_64/RPM-GPG-KEY-openEuler
+[root@gugujun ~]# yum clean all
+6 files removed
+[root@gugujun ~]# yum makecache
+
+
+
+yum [options] [command] [package ...]
+  1. 列出所有可更新的软件清单命令：yum check-update
+  2. 更新所有软件命令：yum update
+  3. 仅安装指定的软件命令：yum install <package_name>
+  4. 仅更新指定的软件命令：yum update <package_name>
+  5. 列出所有可安裝的软件清单命令：yum list
+  6. 删除软件包命令：yum remove <package_name>
+  7. 查找软件包命令：yum search <keyword>
+  8.列出已经安装的软件包清单：yum list all
+  9.列出系统中特定的RPM包信息：yum list 软件包名
+  10.显示RPM包信息：yum info 软件包名
+  11. 清除缓存命令:
+    yum clean packages: 清除缓存目录下的软件包
+    yum clean headers: 清除缓存目录下的 headers
+    yum clean oldheaders: 清除缓存目录下旧的 headers
+    yum clean, yum clean all (= yum clean packages; yum clean oldheaders) :清除缓存目录下的软件包及旧的 headers
+
+
+
+########################### clickhouse  ###########################
+From RPM Packages
+It is recommended to use official pre-compiled rpm packages for CentOS, RedHat, and all other rpm-based Linux distributions.
+
+Setup the RPM repository
+First, you need to add the official repository:
+
+  sudo yum install -y yum-utils
+  sudo yum-config-manager --add-repo https://packages.clickhouse.com/rpm/clickhouse.repo
+
+For systems with zypper package manager (openSUSE, SLES):
+
+  sudo zypper addrepo -r https://packages.clickhouse.com/rpm/clickhouse.repo -g
+  sudo zypper --gpg-auto-import-keys refresh clickhouse-stable
+
+
+Later any yum install can be replaced by zypper install. To specify a particular version, add -$VERSION to the end of the package name, e.g. clickhouse-client-22.2.2.22.
+
+Install ClickHouse server and client
+  sudo yum install -y clickhouse-server clickhouse-client
+
+Start ClickHouse server
+  sudo systemctl enable clickhouse-server
+  sudo systemctl start clickhouse-server
+  sudo systemctl status clickhouse-server
+  clickhouse-client # or "clickhouse-client --password" if you set up a password.
+  
+#####################################################################################################################################
+
+
+
+
+
+
+
+#####################################   安化县域平台等保测评漏洞修复信息        #####################################
+一. 服务器
+1.设置服务器密码复杂度策略: /etc/pam.d/system-auth开启密码策略—password required pam_cracklib.so dcredit=-1 ucredit=-1 ocredit=-1 lcredit=-1 minlen=8 enforce_for_root;
+
+2.设置口令有效期：/etc/login.def—PASS_MAX_DAYS=90
+
+3.对六台服务器设置不同的密码，避免单台设备口令破解导致六台服务器被控制
+
+4.设置登录失败处理功能:/etc/pam.d/ssh—auth required pam_tally2.so
+onerr=fail deny=5 unlock_time=40 even_deny_root root_unlock_time=40 (设置密码连续错误5次锁定，锁定时间40秒，root密码连续错误3次，锁定时间40秒）
+
+5.设置登录超时时间: /etc/profile—增加"export TMOUT=1800"，设置SSH会话超时时间为1800秒
+
+6.平台操作系统接入日志审计系统，并且在日志审计中设置保存180天
+
+7.服务器限制远程连接的地址: /etc/hosts.allow—设置远程连接的网段(65.33.%.%,65.164.%.%)
+
+8.服务器操作系统的配置文件本地备份：MySQL的my.cnf，NGINX的anhua.conf,redis的6379.conf
+
+9.安装了深信服的日志审计系统(SIP-Logger-A600-WZ),深信服的杀毒软件(EDR),下一代防火墙(深信服AF-1000-B1310-WZ),光闸(深信服FGAP-1000-A600），交换机(深信服aRS3300-52T-4F)
+
+二.中间件（NGINX）
+1.升级NGINX到高版本1.23.4
+
+2.nginx: 设置脚本定期对nginx日志信息备份，并在配置文件中设置保存180天— error_log  logs/error.log  error；access_log logs/access.log main;
+
+3.备份脚本：vim /usr/local/nginx/sbin/log.sh
+#!/bin/sh
+
+BASE_DIR=/usr/local/nginx  #根路径
+BASE_FILE_NAME=access.log  #要备份的日志名
+
+CURRENT_PATH=$BASE_DIR/logs  #要备份的日志的路径
+BAK_PATH=$BASE_DIR/datalogs    #备份的地方
+
+CURRENT_FILE=$CURRENT_PATH/$BASE_FILE_NAME
+BAK_TIME=`/bin/date -d yesterday +%Y%m%d%H%M`  #时间形式为这种201901031535
+BAK_FILE=$BAK_PATH/$BAK_TIME-$BASE_FILE_NAME    #要修改的文件名201901031535-access.log
+echo $BAK_FILE
+
+$BASE_DIR/sbin/nginx -s stop    #停止nginx
+
+mv $CURRENT_FILE $BAK_FILE     #将日志移动到备份的地方
+
+$BASE_DIR/sbin/nginx    #重启nginx，好像会又自动生成access.log在logs下
+
+4.定时任务
+crontab -e 
+0 0 * * * sh /usr/local/nginx/sbin/log.sh
+
+三.中间件（MySQL）
+1.升级MySQL到最新版本8.2.0
+
+2.设置密码度复杂策略，定期对密码进行修改：运行命令安装vaildate_password-mysql> INSTALL PLUGIN validate_password SONAME 'validate_password.so';
+mysql>  show variables like 'validate_password%';
+ Variable_name                        | Value  |
++--------------------------------------+--------+
+| validate_password_check_user_name    | ON     |
+| validate_password_dictionary_file    |        |
+| validate_password_length             | 8      |
+| validate_password_mixed_case_count   | 1      |
+| validate_password_number_count       | 1      |
+| validate_password_policy             | MEDIUM |
+| validate_password_special_char_count | 1      |
++--------------------------------------+--------+
+
+3.重新为默认账户MySQL设置复杂密码
+
+4.开启数据库审计功能，设置general_log=on
+
+5.对数据库审计日志定期备份，并保存日志180天：vi /etc/my.cnf
+[mysqld]
+binlog_expire_logs_seconds=15552000
+max_binlog_size=1G
+命令行：mysql> set global binlog_expire_logs_seconds=15552000
+
+6.数据库设置IP地址白名单
+CREATE USER 'root'@'65.33.%.%' IDENTIFIED BY 'password';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'65.33.%.%';
+CREATE USER 'root'@'65.164.%.%' IDENTIFIED BY 'password';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'65.164.%.%';
+FLUSH PRIVILEGES;
+
+7.host参数不为%：DROP USER 'user'@'%';  FLUSH PRIVILEGES;
+
+8.当数据库数据有大改变时，本地手动备份数据库数据到本地服务器，并定期进行远程异地备份
+
+四.中间件Redis
+1.升级Redis到高版本6.2.11
+
+#####################################################################################################################################
